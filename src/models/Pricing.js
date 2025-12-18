@@ -4,9 +4,10 @@ const PricingSchema = new mongoose.Schema({
   name: String,
   price: String,
   subtitle: String,
+  duration: String,
   features: [String],
   audience: [String],
-  link: String,
+  paymentLink: String,
   popular: Boolean,
   order: Number
 }, { timestamps: true });

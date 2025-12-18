@@ -30,7 +30,7 @@ exports.deleteStat = async (req, res) => {
 
 exports.updateStat = async (req, res) => {
   try {
-    const { value, label } = req.body;
+    const { value, label, tagline, missionStatement, valueColor, labelColor, bgColor, borderColor, taglineColor, missionStatementColor } = req.body;
 
     if (!value || !label) {
       return res.status(400).json({ message: "Value and label are required" });
@@ -38,7 +38,18 @@ exports.updateStat = async (req, res) => {
 
     const stat = await Stat.findByIdAndUpdate(
       req.params.id,
-      { value, label },
+      { 
+        value, 
+        label, 
+        tagline, 
+        missionStatement,
+        valueColor,
+        labelColor,
+        bgColor,
+        borderColor,
+        taglineColor,
+        missionStatementColor
+      },
       { new: true }
     );
 

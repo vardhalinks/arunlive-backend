@@ -13,6 +13,8 @@ const serviceRoutes = require("./routes/service");
 const pricingRoutes = require("./routes/pricing");
 const testimonialRoutes = require("./routes/testimonial");
 const logoRoutes = require("./routes/logo");
+const socialRoutes = require("./routes/social");
+const footerRoutes = require("./routes/footer");
 const uploadRoutes = require("./routes/upload");
 
 // Increase payload limits FIRST, before cors
@@ -28,6 +30,8 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/pricing", pricingRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/logos", logoRoutes);
+app.use("/api/socials", socialRoutes);
+app.use("/api/footer", footerRoutes);
 app.use("/api/upload", uploadRoutes);
 
 app.get("/", (req, res) => {
