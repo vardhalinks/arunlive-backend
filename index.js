@@ -16,8 +16,14 @@ connectDB();
 
 const app = express();
 
-// CORS Allowed
-app.use(cors({ origin: "*", methods: "GET,POST" }));
+// CORS Configuration
+app.use(cors({
+  origin: [
+    "http://localhost:5173",        // local admin
+    "https://e.arunlive.com"        // live landing/admin domain
+  ],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
 // Required Root Route
