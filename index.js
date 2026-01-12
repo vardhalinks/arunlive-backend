@@ -6,6 +6,7 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import https from "https";
+import axios from "axios";
 import sectionRoutes from "./src/routes/sectionRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
@@ -16,14 +17,8 @@ connectDB();
 
 const app = express();
 
-// CORS Configuration
-app.use(cors({
-  origin: [
-    "http://localhost:5173",        // local admin
-    "https://e.arunlive.com"        // live landing/admin domain
-  ],
-  credentials: true
-}));
+// CORS Allowed
+app.use(cors({ origin: "*", methods: "GET,POST" }));
 app.use(bodyParser.json());
 
 // Required Root Route
@@ -69,6 +64,37 @@ app.post("/verify-payment", (req, res) => {
     return res.redirect("https://arunlive.com/success.html");
   } else {
     return res.redirect("https://arunlive.com/failed.html");
+  }
+});
+
+// Facebook Meta Conversions API (CAPI) - Lead Tracking
+app.post("/api/meta/lead", async (req, res) => {
+  const { eventId } = req.body;
+
+  try {
+    const response = await axios.post(
+      `https://graph.facebook.com/v18.0/${process.env.META_PIXEL_ID}/events`,
+      {
+        data: [
+          {
+            event_name: "Lead",
+            event_time: Math.floor(Date.now() / 1000),
+            action_source: "website",
+            event_id: eventId // 🔥 dedup key
+          }
+        ]
+      },
+      {
+        params: {
+          access_token: process.env.META_ACCESS_TOKEN
+        }
+      }
+    );
+
+    res.json({ success: true, response: response.data });
+  } catch (error) {
+    console.error("Meta CAPI Error:", error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || error.message });
   }
 });
 
