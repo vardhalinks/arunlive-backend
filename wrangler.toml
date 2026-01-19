@@ -16,8 +16,8 @@ preview_id = "your-preview-kv-id"
 # They will be accessed via c.env.VAR_NAME in Hono handlers
 
 [env.production.vars]
-RAZORPAY_KEY_ID = "your-key-id"
-RAZORPAY_KEY_SECRET = "your-key-secret"
-JWT_SECRET = "your-jwt-secret"
+RAZORPAY_KEY_ID = "rzp_live_S0VkMnqosqCS2C"
+RAZORPAY_KEY_SECRET = "Caq1BBUizEdjGrpS9vo3LpM4"
+JWT_SECRET = "my_super_secret_123"
 META_PIXEL_ID = "your-meta-pixel-id"
 META_ACCESS_TOKEN = "your-meta-access-token"

@@ -118,7 +118,7 @@ app.post("/generate-link", async (c) => {
     );
 
     return c.json({
-      secure_link: `https://main-backend-dzf5.onrender.com/secure-session?token=${token}`,
+      secure_link: `https://arunlive-backend.linksvardha.workers.dev/secure-session?token=${token}`,
     });
   } catch {
     return c.json({ error: "Failed to generate link" }, 500);
