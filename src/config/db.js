@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import mongoose from "mongoose";
 
 export const connectDB = async () => {
@@ -22,3 +23,18 @@ export const connectDB = async () => {
     process.exit(1);
   }
 };
+=======
+const mongoose = require("mongoose");
+
+const connectDB = async (uri) => {
+  try {
+    await mongoose.connect(uri, { });
+    console.log("MongoDB connected");
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
+>>>>>>> 26b11898d829a0913cd311edcd785d77a7b24c06
