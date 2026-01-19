@@ -8,7 +8,7 @@ name = "razorpay-backend-prod"
 
 [[kv_namespaces]]
 binding = "KV_STORE"
-id = "your-kv-id"
+id = "d20b4106a8ea46d0828566db1c3eee4e"
 preview_id = "your-preview-kv-id"
 
 [vars]
