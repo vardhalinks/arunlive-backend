@@ -1,7 +1,11 @@
+import "node:crypto";
+import "node:buffer";
+import "node:stream";
+import "node:util";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import Razorpay from "razorpay";
-import crypto from "crypto";
+import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import sectionRoutes from "./src/routes/sectionRoutes.js";
