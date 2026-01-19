@@ -1,18 +1,20 @@
 // backend/src/middleware/apiKeyAuth.js
-export const apiKeyProtect = (req, res, next) => {
-  const keyHeader = req.headers["x-api-key"] || req.headers["x-api_key"];
-  const keyQuery = req.query?.api_key;
+import { createMiddleware } from "hono/factory";
+
+export const apiKeyProtect = createMiddleware(async (c, next) => {
+  const keyHeader = c.req.header("x-api-key") || c.req.header("x-api_key");
+  const keyQuery = c.req.query("api_key");
   const provided = keyHeader || keyQuery;
-  const expected = process.env.LANDING_API_KEY || "";
+  const expected = c.env.LANDING_API_KEY || "";
 
   if (!expected) {
     // If no key configured, reject to avoid accidental public exposure
-    return res.status(403).json({ message: "Server not configured for API key access" });
+    return c.json({ message: "Server not configured for API key access" }, 403);
   }
 
   if (!provided || provided !== expected) {
-    return res.status(401).json({ message: "Invalid API key" });
+    return c.json({ message: "Invalid API key" }, 401);
   }
 
-  next();
-};
+  await next();
+});

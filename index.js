@@ -1,79 +1,78 @@
-import express from "express";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
 import Razorpay from "razorpay";
-import cors from "cors";
-import bodyParser from "body-parser";
 import crypto from "crypto";
-import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
-import https from "https";
 import axios from "axios";
 import sectionRoutes from "./src/routes/sectionRoutes.js";
 import { connectDB } from "./src/config/db.js";
 
-dotenv.config();
-
 // Connect to MongoDB
 connectDB();
 
-const app = express();
+const app = new Hono();
 
-// CORS Allowed
-app.use(cors({ origin: "*", methods: "GET,POST" }));
-app.use(bodyParser.json());
+// CORS middleware
+app.use("/*", cors({ origin: "*" }));
+
+// One-Time Access token storage
+const usedTokens = new Set();
 
 // Required Root Route
-app.get("/", (req, res) => {
-  res.send("Backend running OK! 🚀");
+app.get("/", (c) => {
+  return c.text("Backend running OK! 🚀");
 });
 
 // CMS Section Routes
-app.use("/api/sections", sectionRoutes);
-
-// Razorpay Setup
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+app.route("/api/sections", sectionRoutes);
 
 // Create Order
-app.post("/create-order", async (req, res) => {
+app.post("/create-order", async (c) => {
   try {
-    const { amount } = req.body;
+    const { amount } = await c.req.json();
+    
+    // Razorpay Setup with env vars
+    const razorpay = new Razorpay({
+      key_id: c.env.RAZORPAY_KEY_ID,
+      key_secret: c.env.RAZORPAY_KEY_SECRET,
+    });
+    
     const order = await razorpay.orders.create({
       amount: amount * 100,
       currency: "INR",
       receipt: "receipt#A1",
     });
-    res.json(order);
+    
+    return c.json(order);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    return c.json({ error: err.message }, 500);
   }
 });
 
 // Verify Payment
-app.post("/verify-payment", (req, res) => {
-  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+app.post("/verify-payment", async (c) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = await c.req.json();
 
   const sign = razorpay_order_id + "|" + razorpay_payment_id;
   const expectedSign = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+    .createHmac("sha256", c.env.RAZORPAY_KEY_SECRET)
     .update(sign)
     .digest("hex");
 
   if (razorpay_signature === expectedSign) {
-    return res.redirect("https://arunlive.com/success.html");
+    return c.redirect("https://arunlive.com/success.html");
   } else {
-    return res.redirect("https://arunlive.com/failed.html");
+    return c.redirect("https://arunlive.com/failed.html");
   }
 });
 
 // Facebook Meta Conversions API (CAPI) - Lead Tracking
-app.post("/api/meta/lead", async (req, res) => {
-  const { eventId } = req.body;
+app.post("/api/meta/lead", async (c) => {
+  const { eventId } = await c.req.json();
 
   try {
     const response = await axios.post(
-      `https://graph.facebook.com/v18.0/${process.env.META_PIXEL_ID}/events`,
+      `https://graph.facebook.com/v18.0/${c.env.META_PIXEL_ID}/events`,
       {
         data: [
           {
@@ -86,86 +85,70 @@ app.post("/api/meta/lead", async (req, res) => {
       },
       {
         params: {
-          access_token: process.env.META_ACCESS_TOKEN
+          access_token: c.env.META_ACCESS_TOKEN
         }
       }
     );
 
-    res.json({ success: true, response: response.data });
+    return c.json({ success: true, response: response.data });
   } catch (error) {
     console.error("Meta CAPI Error:", error.response?.data || error.message);
-    res.status(500).json({ error: error.response?.data || error.message });
+    return c.json({ error: error.response?.data || error.message }, 500);
   }
 });
 
 // JWT Link Generator (One-Time + IP Lock)
-app.post("/generate-link", (req, res) => {
-  const { payment_id } = req.body;
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
+app.post("/generate-link", async (c) => {
+  const { payment_id } = await c.req.json();
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0] || c.req.header("cf-connecting-ip") || "";
 
-  if (!payment_id) return res.status(400).json({ error: "payment_id is required" });
+  if (!payment_id) {
+    return c.json({ error: "payment_id is required" }, 400);
+  }
 
   try {
     const token = jwt.sign(
       { payment_id, ip },
-      process.env.JWT_SECRET,
+      c.env.JWT_SECRET,
       { expiresIn: "1h" } // 1 hour validity
     );
 
-    return res.json({
+    return c.json({
       secure_link: `https://main-backend-dzf5.onrender.com/secure-session?token=${token}`,
     });
   } catch {
-    res.status(500).json({ error: "Failed to generate link" });
+    return c.json({ error: "Failed to generate link" }, 500);
   }
 });
 
 // One-Time Access + IP Verified Access
-const usedTokens = new Set();
+app.get("/secure-session", (c) => {
+  const token = c.req.query("token");
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0] || c.req.header("cf-connecting-ip") || "";
 
-app.get("/secure-session", (req, res) => {
-  const token = req.query.token;
-  const ip = req.headers["x-forwarded-for"]?.split(",")[0] || req.socket.remoteAddress;
-
-  if (!token) return res.status(400).send("Token missing!");
+  if (!token) {
+    return c.text("Token missing!", 400);
+  }
 
   try {
-    const data = jwt.verify(token, process.env.JWT_SECRET);
+    const data = jwt.verify(token, c.env.JWT_SECRET);
 
     // One time usage
     if (usedTokens.has(token)) {
-      return res.status(403).send("⛔ Access Expired!");
+      return c.text("⛔ Access Expired!", 403);
     }
 
     // IP Verified
     if (data.ip !== ip) {
-      return res.status(403).send("⛔ Invalid Device or IP!");
+      return c.text("⛔ Invalid Device or IP!", 403);
     }
 
     usedTokens.add(token);
-    return res.redirect("https://calendly.com/linksvardha/60min");
+    return c.redirect("https://calendly.com/linksvardha/60min");
 
   } catch {
-    return res.status(403).send("⛔ Session Access Denied");
+    return c.text("⛔ Session Access Denied", 403);
   }
 });
 
-const port = process.env.PORT || 5000;
-app.listen(port, () => console.log("🚀 Server running on port " + port));
-
-// Keep-alive ping to render backend (every 8 minutes)
-const pingUrl = "https://main-backend-dzf5.onrender.com";
-setInterval(() => {
-  try {
-    const req = https.get(pingUrl, (res) => {
-      console.log(`pinged ${pingUrl} - status ${res.statusCode}`);
-      // Consume response to free socket
-      res.on('data', () => {});
-    });
-    req.on('error', (err) => {
-      console.log('ping failed', err.message);
-    });
-  } catch (e) {
-    console.log('ping failed', e.message);
-  }
-}, 8 * 60 * 1000); // हर 8 मिनट में पिंग
+export default app;

@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "wrangler deploy",
+    "dev": "node server.js",
+    "dev:wrangler": "wrangler dev"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
-    "crypto": "^1.0.1",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
+    "@hono/node-server": "^1.19.9",
+    "axios": "^1.7.0",
+    "dotenv": "^17.2.3",
+    "hono": "^4.11.4",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.0.0",
     "razorpay": "^2.9.2"
